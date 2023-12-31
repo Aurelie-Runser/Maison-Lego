@@ -1,0 +1,1150 @@
+<!DOCTYPE HTML>
+<html lang="fr">
+  <head>
+	<title>DUT MMI - Modélisation algorithmique 1</title>
+  <meta name="author" content="Aurélie Runser">
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="images/icon.png" />
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+        background-color: #777777;
+      }
+      #canvas {
+        display : block;
+        position:absolute;
+        left:10px;
+        right:440px;
+        top:10px;
+        bottom : 10px;
+        background-color: #000000;
+      }
+      #info {
+    		display : block;
+    		position : absolute;
+    		width : 400px;
+    		bottom : 10px;
+    		top : 10px;
+    		right : 10px;
+    		background-color: #EEEEEE;
+    		border : 2px solid white;
+    		padding : 5px;
+    		font-size:14pt;
+    		font-family:times new roman;
+    		font-weight:bold;
+    		font-style:italic;
+    		color:black;
+    	}
+      input {
+    		background-color: #FFFFFF;
+        border: none;
+    		width: 30px;
+    		color:black;
+    		font-size:14pt;
+    		font-family:times new roman;
+    		font-weight:bold;
+    	}
+    </style>
+  </head>
+  <body>
+
+    <div id="canvas"></div>
+    <div id="info">
+      <p>Mon terrain s'étend sur <input id="fieldX" />x<input id="fieldY" /> u²,
+        il est cloturé d'un mur de <input id="fenceH" /> u de haut,
+        avec un portail à l'abcisse <input id="gateX" />.<br/>
+        Ma maison a comme dimensions : <input id="houseW" /> u x
+        <input id="houseH" /> u, elle est placée en (<input id="houseX" />,<input id="houseY" />). Elle a :</p>
+      <ul><li>Une porte en façade à <input id="doorX" /> u du pignon gauche.</li>
+        <li>Une fenêtre en façade à <input id="window1X" /> u du pignon gauche.</li>
+        <li>Une fenêtre sur le pignon de gauche à <input id="window2Y" /> u de la façade.</li>
+      </ul>
+      <p>Mon jardin contient <input id="flowers"> fleurs.</p>
+      <br/>
+      <table border="0">
+    <tr><td align="right"><img src="images/b1.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB1"/></td>
+        <td align="right"><img src="images/b2.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB2"/></td></tr>
+    <tr><td align="right"><img src="images/b4.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB4"/></td>
+        <td align="right"><img src="images/b6.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB6"/></td></tr>
+		<tr><td align="right"><img src="images/t1.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT1"/></td>
+        <td align="right"><img src="images/t2.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT2"/></td></tr>
+		<tr><td align="right"><img src="images/t3.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT3"/></td>
+        <td align="right"><img src="images/t4.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT4"/></td></tr>
+		<tr><td align="right"><img src="images/tA.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textTA"/></td>
+        <td align="right"><img src="images/P2.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP2"/></td></tr>
+    <tr><td align="right"><img src="images/P3.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP3"/></td>
+        <td align="right"><img src="images/P4.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP4"/></td></tr>
+    <tr><td align="right"><img src="images/P6.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP6"/></td>
+        <td align="right">Brique 1x1</td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP1"/></td></tr>
+        <td align="right"></td></tr>
+      </table>
+	  <br/><br/>
+	  <input type="checkbox" id="showBB">Afficher les ouvertures.
+      <br/>
+      Replay: <button id="replay"><img src="images/play.png" width="32" /></button>
+    </div>
+<script type="module">
+import * as THREE from '../three.js-dev/build/three.module.js';
+import { OrbitControls } from '../three.js-dev/examples/jsm/controls/OrbitControls.js';
+import { ColladaLoader } from '../three.js-dev/examples/jsm/loaders/ColladaLoader.js';
+	
+
+// variables utilisées par les deux fonctions
+var renderer,camera,scene,controls,repere;
+var clock = new THREE.Clock();
+var BBs = [];
+var u=8;
+var v=9.6;
+var brique1, brique2, brique4, brique6, door, win, fleur;
+var tuile1, tuile2, tuile3, tuile4, tuileAngle;
+var plaque1x1, plaque2x1, plaque3x1, plaque2x2, plaque3x2;
+var parameters={'fieldX':38,'fieldY':30,'fenceH':2,'houseX':4,'houseY':4,
+  'houseW':22,'houseH':15,'doorX':5,'window1X':12,'window2Y':2,'gateX':6, 'flowers':20};
+  
+// variables pour l'animations
+var clickInfo = [];
+var animations = [];
+const raycaster = new THREE.Raycaster();
+var SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_LEFT, SCREEN_TOP;
+
+function start() {
+  for(var param in parameters) {
+    let obj = document.getElementById(param);
+    obj.value = parameters[param];
+  obj.addEventListener('change', (event)=>{ parameters[obj.id]=parseInt(obj.value); generate()});
+  }
+  // document.getElementById('replay').addEventListener('click',(event)=>{step=1;});
+    
+  // initialisation du moteur de rendu
+  renderer = new THREE.WebGLRenderer();
+
+  // création d'un canvas dans un div
+  renderer.setClearColor(0x222222,1);
+  var container = document.getElementById("canvas");
+  var w = container.offsetWidth;
+  var h = container.offsetHeight;
+
+  // dimention de la fenetre
+  SCREEN_WIDTH = container.scrollWidth;
+  SCREEN_HEIGHT = container.scrollHeight;
+  SCREEN_LEFT = container.offsetLeft - container.scrollLeft + container.clientLeft;
+  SCREEN_TOP = container.offsetTop - container.scrollTop + container.clientTop;
+
+  renderer.setSize(w, h);
+  container.appendChild(renderer.domElement);
+
+  //gestion du clique sur la fenetre graphique
+  container.addEventListener('click', onClickEvent, false);
+
+  // création d'une caméra perspective(angle d'ouverture, rapport largeur/hauteur, near, far)
+  camera = new THREE.PerspectiveCamera(25, w/h, 1, 6000);
+  camera.position.set(300,450,500);
+  camera.lookAt(new THREE.Vector3(0,0,5*v));
+  camera.up.set(0,0,1);
+
+  controls = new OrbitControls(camera,renderer.domElement);
+    
+  // création de la scène
+  scene = new THREE.Scene();
+
+  clock.start();
+  var loader = new ColladaLoader();
+  loader.load( './models/pieces_lego.dae',onLoaded, onProgress, onError );
+
+  // sources de lumière (une ambiante et une ponctuelle placée en [-10;100;200])
+	var ambientLight = new THREE.AmbientLight(0x0a0a0a);
+	scene.add(ambientLight);
+	var pointLight = new THREE.PointLight(0xffffff,1);
+	pointLight.position.set(-300, 600, 1500);
+
+	scene.add(pointLight);
+}
+
+function onLoaded(collada) {
+  let object = collada.scene;
+  repere = object.getObjectByName("repere");
+  brique1 = object.getObjectByName("brique1x1");
+  brique2 = object.getObjectByName("brique2x1");
+  brique4 = object.getObjectByName("brique4x1");
+  brique6 = object.getObjectByName("brique6x1");
+  
+  door = object.getObjectByName("porte");
+  win = object.getObjectByName("fenetre");
+  fleur = object.getObjectByName("fleur");
+
+  tuile1 = object.getObjectByName("toit1x2");
+  tuile2 = object.getObjectByName("toit2x2");
+  tuile3 = object.getObjectByName("toit3x2");
+  tuile4 = object.getObjectByName("toit4x2");
+  tuileAngle = object.getObjectByName("toitAngle2x2");
+
+  plaque1x1 = object.getObjectByName("plaque1x1");
+  plaque2x1 = object.getObjectByName("plaque2x1");
+  plaque3x1 = object.getObjectByName("plaque3x1");
+  plaque2x2 = object.getObjectByName("plaque2x2");
+  plaque3x2 = object.getObjectByName("plaque3x2");
+ 
+  // définition d'un objet clicable et animé
+  let battant = object.getObjectByName("battant")
+  battant.isOpen = false;
+
+  // ouverture/fermeture de la porte au clique
+  battant.onClick = function(interaction){
+    if (this.isOpen){
+      battant.animationStatus=1
+      this.isOpen = false
+    } else {
+      battant.animationStatus=3
+      this.isOpen = true
+    }
+    // console.log("C GAGNER")
+  }
+
+  battant.amax=THREE.Math.degToRad(180);
+  battant.amin=THREE.Math.degToRad(90);
+  battant.duration=2.0;
+
+  // animation de l'ouverture/fermeture de la porte
+  battant.updateAnimation = function(dt){
+    // angle : la variation d'angle en dt seconde
+    let angle = dt*(this.amax-this.amin)/(this.duration);
+    switch (this.animationStatus) {
+      case 1 :
+        this.rotation.z-=angle; // réduit l'angle de cadre de 'angle'
+        if (this.rotation.z<this.amin) { // si il atteint le mini
+          this.rotation.z=this.amin;
+          this.animationStatus=0; // on change le status
+        }
+      break;
+      case 3:
+        this.rotation.z+=angle; // augmente l'angle de cadre de 'angle'
+        if (this.rotation.z>this.amax) { // si on atteint le maxi
+          this.rotation.z=this.amax;
+          this.animationStatus=2; // on change le status
+        }
+      break;
+    }  
+  }
+
+  animations.push(battant)
+
+  generate()
+	
+  let dt = clock.getElapsedTime();
+  console.log("Loading completed after "+dt+" s.");
+}
+
+var onProgress = function(data) {
+	if ( data.lengthComputable ) {
+		var percentComplete = data.loaded / data.total * 100;
+		console.log( Math.round( percentComplete, 2 ) + '% downloaded' );
+	}
+};
+
+var onError = function(data) {
+	console.error(data);
+};
+
+var t = 0;
+function animate(){
+
+  // rendering of the scene from camera
+  renderer.render(scene, camera);
+
+  // détection du picking / du clique
+  if (clickInfo.userHasClicked) {
+      // console.log(
+      //     "("+parseInt(0.5*(clickInfo.mouse.x+1)*SCREEN_WIDTH+SCREEN_LEFT)+
+      //     ";"+parseInt(-0.5*(clickInfo.mouse.y-1)*SCREEN_HEIGHT+SCREEN_TOP)+")"
+      // );
+        clickInfo.userHasClicked=false; // pret pour le clique suivant
+      raycaster.setFromCamera(clickInfo.mouse,camera);
+        let intersections = raycaster.intersectObjects(scene.children,true);
+      let obj=null;
+        if (intersections.length>0) {
+          obj = intersections[0].object; // l'objet de la premiere intersection
+          // si l'objet à un nom vide alors on sélectionne son pere
+          while (obj!=null && obj.name=="") { // cherche le nom du parent
+              obj=obj.parent;
+          }
+          // console.log(obj.name + " uv= (" +
+          // intersections[0].uv.x.toFixed(2) + "," +
+          // intersections[0].uv.y.toFixed(2) + ")" );
+          if (obj) { // Lance la fonction onclick sur l'objet cliqué
+              animations.forEach(object => {
+                  if (object.name==obj.name) {
+                      object.onClick(intersections[0]);
+                  }
+              });
+          }
+      }
+  }
+
+  let dt=clock.getDelta();
+  animations.forEach(object => { // mettre à jour l'animation sur tous les objects cliquables
+    object.updateAnimation(dt);
+  });
+
+  // if the 3D model is loaded
+  if (repere!==undefined ) { 
+    // generate(); // draw   
+  }
+
+  // restart next frame
+  requestAnimationFrame(function() { animate(); });
+}
+
+function onClickEvent(event) {
+  clickInfo.userHasClicked = true;
+  clickInfo.mouse = new THREE.Vector2();
+  clickInfo.mouse.x = ((event.clientX - SCREEN_LEFT) / SCREEN_WIDTH) * 2 - 1;
+  clickInfo.mouse.y = -((event.clientY - SCREEN_TOP) / SCREEN_HEIGHT) * 2 + 1;
+}
+
+function generate() {
+	BBs=[];
+  BBs[0] = new BoundingBox(parameters['gateX'], parameters['fieldY']-2, 0, 4, 3, parameters['fenceH']);
+	BBs[0].models=undefined;
+  
+  BBs[1] = new BoundingBox(parameters['houseX']+parameters['doorX'], parameters['houseY']+parameters['houseH']-2, 0, 4, 3, 5);
+  BBs[1].model = door;
+  BBs[1].model.position.set(BBs[1].A.x+0.5*u, BBs[1].A.y+1.5*u, BBs[1].A.z);
+
+  BBs[2] = new BoundingBox(parameters['houseX']+parameters['window1X'] ,parameters['houseY']+parameters['houseH']-2 , 2, 4, 3, 3);
+  BBs[2].model = win.clone();
+  BBs[2].model.position.set(BBs[2].A.x+0.5*u, BBs[2].A.y+1.5*u, BBs[2].A.z);
+
+	BBs[3] = new BoundingBox(parameters['houseX']-1, parameters['houseY']+parameters['houseH']-parameters['window2Y']-4, 2, 3, 4, 3);
+	BBs[3].model = win.clone();
+	BBs[3].model.position.set(BBs[3].A.x+1.5*u, BBs[3].A.y+0.5*u, BBs[3].A.z);
+	BBs[3].model.rotation.z=Math.PI/2.0;
+  
+  if (parameters['houseW'] >=10){
+    let i = 4
+    for (let w=3; w<parameters['houseW']-5; w+=6){
+      BBs[i] = new BoundingBox(parameters['houseX']+w, parameters['houseY'], 2, 4, 3, 3);
+      BBs[i].model = win.clone();
+      BBs[i].model.position.set(BBs[i].A.x+0.5*u+3*u, BBs[i].A.y+0.5*u, BBs[i].A.z);
+	    BBs[i].model.rotation.z=Math.PI;
+      i++
+    }
+  }
+
+	brique1.copies=0;
+	brique2.copies=0;
+	brique4.copies=0;
+	brique6.copies=0;
+
+	tuile1.copies=0;
+	tuile2.copies=0;
+	tuile3.copies=0;
+	tuile4.copies=0;
+	tuileAngle.copies=0;
+
+	plaque1x1.copies=0;
+	plaque2x1.copies=0;
+	plaque3x1.copies=0;
+	plaque2x2.copies=0;
+	plaque3x2.copies=0;
+	  
+  var old = scene.getObjectByName("parent");
+  if (old) {
+  	scene.remove(old);
+  }
+    
+  var parent = new THREE.Mesh();
+  parent.name="parent";
+  scene.add(parent);
+
+  var ground = myGround(parameters['fieldX'],parameters['fieldY']);
+  parent.add(ground);
+  ground.add(repere);
+
+    
+  myFence(parameters['fieldX'],parameters['fieldY'],parameters['fenceH'],ground);
+  myHouse(parameters['houseX'],parameters['houseY'],parameters['houseW'],parameters['houseH'],6,ground);
+  // Chemin(ground)
+  Flowers(parameters['flowers'], parameters['fieldX'], parameters['fieldY'], parameters['houseX'], parameters['houseY'], parameters['houseW'], parameters['houseH'], ground);
+      
+  BBs.forEach(function(BB) { ground.add(BB.model)});
+  if (document.getElementById('showBB').checked) {
+    BBs.forEach(function(BB) {
+      ground.add(BB.getBox())
+    });
+  }
+
+  document.getElementById("textB1").value = brique1.copies;
+  document.getElementById("textB2").value = brique2.copies;
+  document.getElementById("textB4").value = brique4.copies;
+  document.getElementById("textB6").value = brique6.copies;
+   
+  document.getElementById("textT1").value = tuile1.copies;
+  document.getElementById("textT2").value = tuile2.copies;
+  document.getElementById("textT3").value = tuile3.copies;
+  document.getElementById("textT4").value = tuile4.copies;
+  document.getElementById("textTA").value = tuileAngle.copies;
+
+  document.getElementById("textP1").value = plaque1x1.copies;
+  document.getElementById("textP2").value = plaque2x1.copies;
+  document.getElementById("textP3").value = plaque3x1.copies;
+  document.getElementById("textP4").value = plaque2x2.copies;
+  document.getElementById("textP6").value = plaque3x2.copies;
+}
+
+// fonction pour dessiner le sol
+function myGround(lx,ly) {
+  var base = new THREE.Mesh();
+  base.position.set(-lx*4, -ly*4)
+
+  // création du socle
+  let socle = new THREE.Mesh(
+    new THREE.BoxGeometry(lx*8, ly*8, 3.2),
+    new THREE.MeshPhongMaterial({color: '#00ff00', specular: '#000000', shininess: 50})
+  );
+  socle.position.set(4*lx-4, 4*ly-4, -3.2);
+  base.add(socle);
+
+  // création des "picos" par lignes, puis par colonnes
+  for (let ix=0; ix<lx; ix++) {
+    for (let iy=0; iy<ly; iy++) {
+
+      let C0 = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.4, 2.4, 1.6, 12, 1),
+        new THREE.MeshPhongMaterial({
+          color: "#00ff00", specular: '#000000', shininess: 50
+        })
+      );
+      
+      C0.position.set(-4*lx+4+ix*8, -4*ly+4+iy*8, 1.6+0.8)
+      C0.rotation.x = THREE.MathUtils.degToRad(-90)
+      socle.add(C0);
+    }
+  }
+
+  return base;
+}
+
+function myTest(lx,ly,lz,parent) {
+	let test = new THREE.Mesh();
+
+  let b_blanc = brique6.clone();
+  b_blanc.position.set(0, 0, 0)
+  test.add(b_blanc)
+
+  let b_rouge = brique1.clone();
+  b_rouge.position.set(0, 0, v)
+  b_blanc.add(b_rouge)
+
+  let b_jaune = brique4.clone();
+  b_jaune.position.set(u, 0, v)
+  b_blanc.add(b_jaune)
+
+  let b_bleu= brique2.clone();
+  b_bleu.position.set(0, 0, v)
+  b_rouge.add(b_bleu)
+
+	parent.add(test);
+}
+    
+function myTest2(lx,ly,lz,parent) {
+  let test = new THREE.Mesh();
+
+  let b_blanc = brique6.clone();
+  b_blanc.position.set(0, 0, 0)
+  test.add(b_blanc)
+
+  let b_rouge = brique1.clone();
+  b_rouge.position.set(0, 0, v)
+  b_blanc.add(b_rouge)
+
+  let b_jaune = brique4.clone();
+  b_jaune.position.set(u, 0, v)
+  b_blanc.add(b_jaune)
+
+  let b_bleu= brique2.clone();
+  b_bleu.position.set(0, 0, v)
+  b_rouge.add(b_bleu)
+
+  return test;
+}
+
+// une ligne de briques
+function myLine(ix0,iy0,iz0,w,dir,parent) {
+  // ix0, iy0, iz0 = position
+  //w = longueur où mettre les briques
+  var base = new THREE.Mesh();
+
+  let x = 0
+
+  while (w>= 6){
+    let b_blanc = brique6.clone();
+    b_blanc.position.set(x, 0, 0)
+    x += 6*u
+    base.add(b_blanc)
+    w-=6
+    brique6.copies ++
+  }
+
+  if (w >= 4 ){
+    let b_jaune = brique4.clone();
+    b_jaune.position.set(x, 0, 0)
+    x += 4*u
+    base.add(b_jaune)
+    w-=4
+    brique4.copies ++
+  }
+
+  if (w >= 2 ){
+    let b_bleu = brique2.clone();
+    b_bleu.position.set(x, 0, 0)
+    x += 2*u
+    base.add(b_bleu)
+    w-=2
+    brique2.copies ++
+  }
+
+  if (w == 1 ){
+    let b_rouge = brique1.clone();
+    b_rouge.position.set(x, 0, 0)
+    base.add(b_rouge)
+    brique1.copies ++
+  }
+
+  base.position.set(ix0*u, iy0*u, iz0*v)
+
+  switch (dir){
+    case 1 : base.rotation.z = THREE.Math.degToRad(90);
+    break;
+    case 2 : base.rotation.z = THREE.Math.degToRad(180);
+    break;
+    case 3 : base.rotation.z = THREE.Math.degToRad(-90);
+    break;
+  }
+
+  parent.add(base);
+}
+
+// une ligne de brique non complete (s'il y a une porte ou fenetre)
+function myCutLine(ix0, iy0, iz0, w, dir, parent){
+
+  let imin = 0
+  let dimin = BBs[imin].posInLine(ix0, iy0, iz0, w, dir, parent)
+
+  for (let i=1; i<BBs.length; i++){
+    let di = BBs[i].posInLine(ix0, iy0, iz0, w, dir, parent)
+    if (di != -1 && (dimin == -1 || di < dimin)){
+      imin = i
+      dimin = di
+    }
+  }
+
+  if ( dimin != -1){
+    myLine(ix0, iy0, iz0, dimin, dir, parent)
+
+    switch (dir){
+      case 0: myCutLine(ix0+dimin+BBs[imin].dx, iy0, iz0, w-dimin-BBs[imin].dx, dir, parent);
+      return;
+      case 1: myCutLine(ix0, iy0+dimin+BBs[imin].dy, iz0, w-dimin-BBs[imin].dy, dir, parent);
+      return;
+      case 2 : myCutLine(ix0-dimin-BBs[imin].dx, iy0, iz0, w-dimin-BBs[imin].dx, dir, parent)
+      return;
+      case 3 : myCutLine(ix0, iy0-dimin-BBs[imin].dy, iz0, w-dimin-BBs[imin].dy, dir, parent)
+      return;
+    }
+
+  } else {
+    myLine(ix0, iy0, iz0, w, dir, parent)
+  }
+}
+
+// des mur dans le sens inverse des aiguilles d'une montre / les etages paires
+function turnLeft(lx,ly,x,y,z,parent) {
+  let fence = new THREE.Mesh();
+  
+  let nextx = 0;
+  let nexty = 0;
+  let nextLen = lx-1;
+
+  // la ligne de +x
+  if (nextLen%2 == 0){
+    myCutLine(x, y, z, lx-1, 0, fence)
+    nextx = lx-1
+    nexty = 0
+    nextLen = ly-1
+  } else {
+    myCutLine(x, y, z, lx, 0, fence)
+    nextx = lx-1
+    nexty = 1
+    nextLen = ly-2
+  }
+  
+  // la ligne de +y
+  if (nextLen%2 == 0){
+    myCutLine(x+nextx, y+nexty, z, nextLen, 1, fence)
+    nextx = lx-1
+    nexty = ly-1
+    nextLen = lx-1
+  } else {
+    myCutLine(x+nextx, y+nexty, z, nextLen+1, 1, fence)
+    nextx = lx-2
+    nexty = ly-1
+    nextLen = lx-2
+  }
+
+  // la ligne de -x
+  if (nextLen%2 == 0){
+    myCutLine(x+nextx, y+nexty, z, nextLen, 2, fence)
+    nextx = 0
+    nexty = ly-1
+    nextLen = ly-1
+  } else {
+    myCutLine(x+nextx, y+nexty, z, nextLen+1, 2, fence)
+    nextx = 0
+    nexty = ly-2
+    nextLen = ly-2
+  }
+
+  // la ligne de -y
+  myCutLine(x+nextx, y+nexty, z, nextLen, 3, fence)
+
+  parent.add(fence);
+}
+
+// des mur dans le sens des aiguilles d'une montre / les etages impaires
+function turnRight(lx,ly,x,y,z,parent) {
+  let fence = new THREE.Mesh();
+  
+  let nextx = 0;
+  let nexty = 0;
+  let nextLen = ly-1;
+
+  // la ligne de -x
+  if (nextLen%2 == 0){
+    myCutLine(x+nextx, y+nexty, z, nextLen, 1, fence)
+    nextx = 0
+    nexty = ly-1
+    nextLen = lx-1
+  } else {
+    myCutLine(x+nextx, y+nexty, z, nextLen+1, 1, fence)
+    nextx = 1
+    nexty = ly-1
+    nextLen = lx-2
+  }
+
+  // la ligne de -y
+  if (nextLen%2 == 0){
+    myCutLine(x+nextx, y+nexty, z, nextLen, 0, fence)
+    nextx = lx-1
+    nexty = ly-1
+    nextLen = ly-1
+  } else {
+    myCutLine(x+nextx, y+nexty, z, nextLen+1, 0, fence)
+    nextx = lx-1
+    nexty = ly-2
+    nextLen = ly-2
+  }
+
+  // // la ligne de +x
+  if (nextLen%2 == 0){
+    myCutLine(x+nextx, y+nexty, z, nextLen, 3, fence)
+    nextx = lx-1
+    nexty = 0
+    nextLen = lx-1
+  } else {
+    myCutLine(x+nextx, y+nexty, z, nextLen+1, 3, fence)
+    nextx = lx-2
+    nexty = 0
+    nextLen = lx-2
+  }
+
+  // la ligne de +x
+  myCutLine(x+nextx, y+nexty, z, nextLen, 2, fence)
+
+  parent.add(fence);
+}
+
+// la cloture
+function myFence(lx,ly,lz,parent) {
+  let fence = new THREE.Mesh();
+  
+  for(let i=0; i< lz; i++){
+    if(i%2 == 0){
+      turnLeft(lx, ly, 0, 0, i, fence)
+    } else {
+      turnRight(lx, ly, 0, 0, i, fence)
+    }
+  }
+
+  ChangeColors(fence, "#e7c175", "#fde6b9")
+
+  parent.add(fence);
+}
+    
+// les murs de la maison
+function myHouse(ix,iy,lx,ly,lz,parent) {
+  let house = new THREE.Mesh();
+
+  for(let i=0; i< lz; i++){
+    if(i%2 == 0){
+      turnLeft(lx, ly, ix, iy, i, house)
+    } else {
+      turnRight(lx, ly, ix, iy, i, house)
+    }
+  }
+
+  ChangeColors(house, "#e1f1ff")
+
+  myRoof(ix, iy, 6, lx, ly, house);
+  mySol(ix+1, iy+1, 0, lx-2, ly-2, house)
+
+  parent.add(house);
+}
+
+// le plafond du toit
+function myPlafond(ix, iy, iz, lx, ly, parent){
+  let plafond = new THREE.Mesh();
+
+  if (lx >= ly){
+    if (ly == 2){
+      let x = 0
+
+      while (lx >= 2){
+        let p2x2 = plaque2x2.clone();
+        p2x2.position.set(x*u, 0, 0)
+        plafond.add(p2x2)
+        plaque2x2.copies ++
+        x += 2
+        lx -= 2
+      }
+
+      if (lx == 1){
+        let p2x1 = plaque2x1.clone();
+        p2x1.position.set(x*u, 0, 0)
+        p2x1.rotation.z = THREE.Math.degToRad(90);
+        plafond.add(p2x1)
+        plaque2x1.copies ++
+      }
+
+    } else {
+      let x = 1
+
+      while (lx >= 2){
+        let p3x2 = plaque3x2.clone();
+        p3x2.position.set(x*u, 0, 0)
+        p3x2.rotation.z = THREE.Math.degToRad(90);
+        plafond.add(p3x2)
+        plaque3x2.copies ++
+        x += 2
+        lx -= 2
+      }
+
+      if (lx == 1){
+        let p3x1 = plaque3x1.clone();
+        p3x1.position.set((x-1)*u, 0, 0)
+        p3x1.rotation.z = THREE.Math.degToRad(90);
+        plafond.add(p3x1)
+        plaque3x1.copies ++
+      }
+    }
+  }
+      
+  else{
+    if (lx == 2){
+      let y = 0
+
+      while (ly >= 2){
+        let p2x2 = plaque2x2.clone();
+        p2x2.position.set(0, y*u, 0)
+        plafond.add(p2x2)
+        plaque2x2.copies ++
+        y += 2
+        ly -= 2
+      }
+
+      if (ly == 1){
+        let p2x1 = plaque2x1.clone();
+        p2x1.position.set(0, y*u, 0)
+        plafond.add(p2x1)
+        plaque2x1.copies ++
+      }
+
+    } else {
+      let y = 0
+
+      while (ly >= 2){
+        let p3x2 = plaque3x2.clone();
+        p3x2.position.set(0, y*u, 0)
+        plafond.add(p3x2)
+        plaque3x2.copies ++
+        y += 2
+        ly -= 2
+      }
+
+      if (ly == 1){
+        let p3x1 = plaque3x1.clone();
+        p3x1.position.set(0, y*u, 0)
+        plafond.add(p3x1)
+        plaque3x1.copies ++
+      }
+    }
+  }
+      
+  plafond.position.set(ix*u, iy*u, iz*v)
+		
+  parent.add(plafond);
+}
+
+// une ligne de tuile
+function myRoofLine(ix0,iy0,iz0,w,dir,parent) {
+  // ix0, iy0, iz0 = position
+  //w = longueur où mettre les briques
+  var base = new THREE.Mesh();
+
+  let x = 0
+
+  let t_angle = tuileAngle.clone();
+  t_angle.position.set(x, 0, 0)
+  base.add(t_angle)
+  x += u
+  tuileAngle.copies ++
+
+  while (w >= 4 ){
+    let t_4 = tuile4.clone();
+    t_4.position.set(x, 0, 0)
+    x += 4*u
+    base.add(t_4)
+    w-=4
+    tuile4.copies ++
+  }
+
+  if (w >= 3 ){
+    let t_3 = tuile3.clone();
+    t_3.position.set(x, 0, 0)
+    x += 3*u
+    base.add(t_3)
+    w-=3
+    tuile3.copies ++
+  }
+
+  if (w >= 2 ){
+    let t_2 = tuile2.clone();
+    t_2.position.set(x, 0, 0)
+    x += 2*u
+    base.add(t_2)
+    w-=2
+    tuile2.copies ++
+  }
+
+  if (w == 1 ){
+    let t_1 = tuile1.clone();
+    t_1.position.set(x, 0, 0)
+    base.add(t_1)
+    tuile1.copies ++
+  }
+
+  base.position.set(ix0*u, iy0*u, iz0*v)
+
+  switch (dir){
+    case 1 : base.rotation.z = THREE.Math.degToRad(90);
+    break;
+    case 2 : base.rotation.z = THREE.Math.degToRad(180);
+    break;
+    case 3 : base.rotation.z = THREE.Math.degToRad(-90);
+    break;
+  }
+    
+  parent.add(base);
+}
+
+// un etage de tuiles
+function turnLeftRoof(lx,ly,x,y,z,parent) {
+  let fence = new THREE.Mesh();
+
+  myRoofLine(x, y, z, lx-1, 0, fence)
+  myRoofLine(x+lx-1, y, z, ly-2, 1, fence)
+  myRoofLine(x+lx-1, y+ly-1, z, lx-2, 2, fence)
+  myRoofLine(x, y+ly-1, z, ly-2, 3, fence)      
+
+  parent.add(fence);
+}
+
+// dessine le toit
+function myRoof(ix,iy,lz,lx,ly,parent){
+  let roof = new THREE.Mesh();
+
+  let i = 0
+  while(lx>=2 && ly>=2){
+    turnLeftRoof(lx, ly, ix+i, iy+i, lz+i, roof)
+    i += 1
+    lx -= 2
+    ly -= 2
+  }
+
+  myPlafond(ix+i-1, iy+i-1, lz+i, lx+2, ly+2, roof)
+
+  ChangeColors(roof, "#5aaaff")
+
+  parent.add(roof);
+}
+
+// le sol de la maison
+function mySol(ix, iy, iz, lx, ly, parent){
+  let sol = new THREE.Mesh();
+
+  for(let x=0; x < lx; x++){
+    for(let y=0; y < ly; y++){
+      let p_1 = plaque1x1.clone();
+      p_1.position.set((ix+x)*u, (iy+y)*u, iz*v)
+      sol.add(p_1)
+      plaque1x1.copies ++
+    }
+  }
+
+  ChangeColors(sol, "#e1f1ff", "#286eba")
+
+  parent.add(sol);
+}
+
+// change la couleur des briques
+function ChangeColors(src, color1, color2 = null) {
+  let index = 0
+
+  src.traverse(child => {
+    if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshPhongMaterial) {
+      let newMaterial = new THREE.MeshPhongMaterial({ color: color1 })
+
+      if (color2 !== null && index % 2 !== 0) {
+        newMaterial.color.set(color2)
+      }
+      index ++
+      
+      child.material = newMaterial
+    }
+  });
+}
+
+// affiche des fleurs aléatoirement
+function Flowers(number, fieldX, fieldY, houseX, houseY, houseW, houseH, parent){
+  let flowers = new THREE.Mesh();
+
+  // randomise la position des fleurs
+  function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+  }
+
+  //créer tableaux de coordonnées jardin en enlevant celle de la barrière
+  let tabF = []
+  for(let x = 2; x < fieldX-2; x++){
+    for(let y = 2; y < fieldY-2; y++){
+      let tab = [x, y]
+      tabF.push(tab)
+    }
+  }
+
+  //trouver les coordonnées associés à la maison
+  let tabM=[]
+  for(let x = -1; x < houseW+1; x++){
+    for(let y = -1; y < houseH+1; y++){
+      let tab = [x+houseX, y+houseY]
+      tabM.push(tab)
+    }
+  }
+
+  //créer un tableau final qui est le tri du tabF moins les coordonnées de tabM pour que les fleurs soit dans le terrain mais pas dans la maison
+  let tabAll = tabF.filter(item => {
+    // Vérifier si la coordonnée n'est pas dans tabM
+    return !tabM.some(filterItem =>
+      item.every((val, index) => val === filterItem[index])
+    );
+  });
+
+  //prendre un nombre aléatoire de coordonnées dans le tableau tabAll et ajouter une fleur en évitant les doublons
+  for(let i = 0; i<number; i++){
+    let num = getRandomInt(tabAll.length)
+    let f = fleur.clone();
+    f.position.set(tabAll[num][0]*u, tabAll[num][1]*u, 0);
+    let deg = getRandomInt(360)
+    f.rotation.z = THREE.Math.degToRad(deg)
+    flowers.add(f);
+    tabAll.splice(num, 1)
+  }
+
+  parent.add(flowers);
+}
+
+// créer le chemin entre la barrière et la porte
+function Chemin(parent){
+  let floor = new THREE.Mesh();
+
+  // double ligne à la cloture
+  for(let i=0; i<4; i++){
+    let pl1 = plaque1x1.clone();
+    // x = point de départ x de la porte de la cloture * 4 (parce que la porte de la cloture fait 4 cases)
+    // y = la longueur de l'axe y du terrain - u ( donc - 1 case) pour etre dans le terrain
+    pl1.position.set(parameters['gateX']*u+i*u, parameters['fieldY']*u-u, 0);
+    floor.add(pl1);
+  }
+
+  // double lignez à la porte de la maison
+  for(let i=0; i<4; i++){
+    let pl1 = plaque1x1.clone();
+    // x = le point de depart x de la maison + le point de depart x de la porte (par rapport à celui de la maison) * 4 (parce que la porte fait 4 cases)
+    // y = poit de depart y de la maison + la longueur de l'axe y de la maison
+    pl1.position.set(parameters['houseX']*u+parameters['doorX']*u+i*u, parameters['houseY']*u+parameters['houseH']*u, 0);
+    floor.add(pl1);
+  }
+
+  let gateX = parameters['gateX'];
+  let gateY = parameters['fieldY'];
+  let porteX = parameters['houseX']+parameters['doorX'];
+  let porteY = parameters['houseY']+parameters['houseH'];
+
+  // si la porte de la maison est plus a gauche que la porte de la cloture
+  if(porteX > gateX){
+    let j=0;
+    let k=0;
+    let ix = gateX
+    let iy = gateY
+
+    while(ix<=porteX && iy!=porteY){
+      ix++;
+      iy--;
+      for(let i=0; i<4; i++){
+        let pl1 = plaque1x1.clone();
+        pl1.position.set((parameters['gateX']*u)+(i*u)+(k*u), (parameters['fieldY']*u)-u-(j*u), 0);
+        floor.add(pl1);
+      }
+      j++;
+      k++;
+    }
+
+    let k1 = k-1
+    let difY = ((parameters['fieldY'])-1-(k)) - (parameters['houseY']+parameters['houseH'])
+    let m = 0
+
+    while(m<difY){
+      m++;
+      for(let i=0; i<4; i++){
+        let pl1 = plaque1x1.clone();
+        pl1.position.set((parameters['gateX']*u)+(i*u)+(k1*u), (parameters['fieldY']*u)-u-(j*u), 0);
+        floor.add(pl1);
+      }
+      j++;
+    }
+  }
+
+  // si la porte de la maison est plus a droite que la porte de la cloture
+  if(porteX < gateX){
+    let j=0;
+    let k=0;
+    let ix = gateX
+    while(ix>=porteY){
+      ix--;
+      for(let i=0; i<4; i++){
+        let pl1 = plaque1x1.clone();
+        pl1.position.set((parameters['gateX']*u)+(i*u)-(k*u), (parameters['fieldY']*u)-u-(j*u), 1);
+        floor.add(pl1);
+      }
+      j++;
+      k++;
+    }
+
+    let k1 = k-1
+    let dif = ((parameters['fieldY'])-1-(k)) - (parameters['houseY']+parameters['houseH'])
+    // console.log("k1: "+k1)
+    // console.log("dif: "+dif)
+    let m = 0
+    while(m<dif){
+      m++;
+      for(let i=0; i<4; i++){
+        let pl1 = plaque1x1.clone();
+        pl1.position.set((parameters['gateX']*u)+(i*u)-(k1*u), (parameters['fieldY']*u)-u-(j*u), 1);
+        floor.add(pl1);
+      }
+      j++;
+    }
+  }
+  
+  if(porteX==gateX){
+    let dif = (((parameters['fieldY'])-1) - (parameters['houseY']+parameters['houseH']))-1
+    // console.log(dif)
+    for(let j=0; j<dif; j++){
+      for(let i=0; i<4; i++){
+        let pl1 = plaque1x1.clone();
+        pl1.position.set((parameters['gateX']*u)+i*u, (parameters['fieldY']*u)-(2*u)-(j*u), 1);
+        floor.add(pl1);
+      }
+    }
+  }
+
+  ChangeColors(floor, "#fffbf2")
+
+  parent.add(floor);
+}
+
+/******************************************************************************/
+/* BOUNDING BOX ***************************************************************/
+function BoundingBox(x0,y0,z0,dx,dy,dz) {
+  this.A = new THREE.Vector3(x0*8-4,y0*8-4,z0*9.6);
+  this.B = new THREE.Vector3(this.A.x+dx*8,this.A.y+dy*8,this.A.z+dz*9.6);
+  this.dx = dx;
+  this.dy = dy;
+}
+
+BoundingBox.prototype.getBox = function() {
+  var box = new THREE.Mesh(
+    new THREE.BoxGeometry(this.B.x-this.A.x,this.B.y-this.A.y,this.B.z-this.A.z, 1, 1, 1),
+    new THREE.MeshPhongMaterial({
+    color: '#00ffff',specular: '#ffffff',shininess: 1000, opacity: 0.5, transparent: true })
+  );
+  box.position.set(0.5*(this.B.x+this.A.x),0.5*(this.B.y+this.A.y),0.5*(this.B.z+this.A.z));
+  return box;
+}
+
+// retourne l'abscisse de la premiere intersection, ou -1 si aucune 
+BoundingBox.prototype.posInLine = function(x0,y0,z0,w,dir) {
+  var z = z0*9.6;
+  if (z<this.A.z || z>=this.B.z) return -1;
+  var res=-1;
+  switch (dir) {
+    case 0:
+      var x = x0*8-4;
+      var y = y0*8-4;
+      if (x<this.B.x && x+w*8>this.A.x && y<=this.B.y-8 && y>=this.A.y) {
+        res = (this.A.x+4)/8-x0;
+      }
+    break;
+    case 1:
+      var x = x0*8-4;
+      var y = y0*8-4;
+      if (x<=this.B.x-8 && x>=this.A.x && y<this.B.y && y+w*8>this.A.y) {
+          res = (this.A.y+4)/8-y0;
+      }
+    break;
+    case 2:
+      var x = x0*8+4;
+      var y = y0*8-4;
+      if (x-w*8<this.B.x && x>this.A.x && y<=this.B.y-8 && y>=this.A.y) {
+        res = x0-(this.B.x-4)/8;
+      }
+    break;
+    case 3:
+      var x = x0*8-4;
+      var y = y0*8+4;
+      if (x<=this.B.x-8 && x>=this.A.x && y-w*8<this.B.y && y>this.A.y) {
+          res = y0-(this.B.y-4)/8;
+      }
+    break;
+  }
+  return res;
+}
+
+/******************************************************************************/
+/* PROGRAMME PRINCIPAL ********************************************************/
+start();
+animate();
+
+    </script>
+  </body>
+</html>
