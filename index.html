@@ -5,7 +5,9 @@
   <meta name="author" content="Aurélie Runser">
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="images/icon.png" />
-    <style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">    <style>
       body {
         margin: 0px;
         padding: 0px;
@@ -27,62 +29,81 @@
     		bottom : 10px;
     		top : 10px;
     		right : 10px;
+        left: auto;
     		background-color: #EEEEEE;
-    		border : 2px solid white;
-    		padding : 5px;
-    		font-size:14pt;
-    		font-family:times new roman;
-    		font-weight:bold;
-    		font-style:italic;
+    		padding : 0 10px;
+    		font-size: 1rem;
+    		font-family: "Roboto", sans-serif;
+        font-weight: 400;
+        font-style: normal;
     		color:black;
     	}
+      @media (max-width: 768px) {
+        #canvas {
+          left:5px;
+          right:5px;
+          top:5px;
+          bottom : 25%;
+        }
+        #info{
+          width: auto;
+          height: fit-content;
+          padding : 0 5px;
+          top: auto;
+          bottom : 0;
+          left: 5px;
+          right : 5px;
+        }
+      }
       input {
     		background-color: #FFFFFF;
         border: none;
     		width: 30px;
     		color:black;
-    		font-size:14pt;
-    		font-family:times new roman;
-    		font-weight:bold;
+    		font-size:1rem;
+    		font-family: "Roboto", sans-serif;
+    		font-weight: 600;
     	}
+      p, ul{
+        margin: 1rem 0;
+      }
     </style>
   </head>
   <body>
 
     <div id="canvas"></div>
     <div id="info">
-      <p>Mon terrain s'étend sur <input id="fieldX" />x<input id="fieldY" /> u²,
-        il est cloturé d'un mur de <input id="fenceH" /> u de haut,
+      <p>Mon terrain s'étend sur <input id="fieldX" />x<input id="fieldY" />cases,
+        il est cloturé d'un mur de <input id="fenceH" />cases de haut,
         avec un portail à l'abcisse <input id="gateX" />.<br/>
-        Ma maison a comme dimensions : <input id="houseW" /> u x
-        <input id="houseH" /> u, elle est placée en (<input id="houseX" />,<input id="houseY" />). Elle a :</p>
-      <ul><li>Une porte en façade à <input id="doorX" /> u du pignon gauche.</li>
-        <li>Une fenêtre en façade à <input id="window1X" /> u du pignon gauche.</li>
-        <li>Une fenêtre sur le pignon de gauche à <input id="window2Y" /> u de la façade.</li>
+        Ma maison<input type="color" name="houseColor" id="houseColor">
+        a comme dimensions<input id="houseW" />x<input id="houseH" />cases, elle est placée en (<input id="houseX" />,<input id="houseY" />). Elle a :</p>
+      <ul>
+        <li>Une porte en façade à <input id="doorX" />cases du mur droit.</li>
+        <li>Une fenêtre en façade à <input id="window1X" />cases du mur droit.</li>
+        <li>Une fenêtre sur le mur de droit à <input id="window2Y" />cases de la façade.</li>
       </ul>
       <p>Mon jardin contient <input id="flowers"> fleurs.</p>
-      <br/>
+      
+      <!-- <br/>
       <table border="0">
-    <tr><td align="right"><img src="images/b1.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB1"/></td>
-        <td align="right"><img src="images/b2.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB2"/></td></tr>
-    <tr><td align="right"><img src="images/b4.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB4"/></td>
-        <td align="right"><img src="images/b6.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB6"/></td></tr>
-		<tr><td align="right"><img src="images/t1.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT1"/></td>
-        <td align="right"><img src="images/t2.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT2"/></td></tr>
-		<tr><td align="right"><img src="images/t3.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT3"/></td>
-        <td align="right"><img src="images/t4.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT4"/></td></tr>
-		<tr><td align="right"><img src="images/tA.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textTA"/></td>
-        <td align="right"><img src="images/P2.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP2"/></td></tr>
-    <tr><td align="right"><img src="images/P3.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP3"/></td>
-        <td align="right"><img src="images/P4.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP4"/></td></tr>
-    <tr><td align="right"><img src="images/P6.png" height="48"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP6"/></td>
+    <tr><td align="right"><img src="images/b1.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB1"/></td>
+        <td align="right"><img src="images/b2.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB2"/></td></tr>
+    <tr><td align="right"><img src="images/b4.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB4"/></td>
+        <td align="right"><img src="images/b6.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textB6"/></td></tr>
+		<tr><td align="right"><img src="images/t1.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT1"/></td>
+        <td align="right"><img src="images/t2.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT2"/></td></tr>
+		<tr><td align="right"><img src="images/t3.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT3"/></td>
+        <td align="right"><img src="images/t4.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textT4"/></td></tr>
+		<tr><td align="right"><img src="images/tA.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textTA"/></td>
+        <td align="right"><img src="images/P2.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP2"/></td></tr>
+    <tr><td align="right"><img src="images/P3.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP3"/></td>
+        <td align="right"><img src="images/P4.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP4"/></td></tr>
+    <tr><td align="right"><img src="images/P6.png" height="30"/></td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP6"/></td>
         <td align="right">Brique 1x1</td><td>x</td><td><input disabled="disabled" class="info" value="0" id="textP1"/></td></tr>
-        <td align="right"></td></tr>
       </table>
-	  <br/><br/>
-	  <input type="checkbox" id="showBB">Afficher les ouvertures.
-      <br/>
-      Replay: <button id="replay"><img src="images/play.png" width="32" /></button>
+	  <br/><br/> -->
+	  <!-- <input type="checkbox" id="showBB">Afficher les ouvertures. -->
     </div>
 <script type="module">
 import * as THREE from '../three.js-dev/build/three.module.js';
@@ -99,8 +120,8 @@ var v=9.6;
 var brique1, brique2, brique4, brique6, door, win, fleur;
 var tuile1, tuile2, tuile3, tuile4, tuileAngle;
 var plaque1x1, plaque2x1, plaque3x1, plaque2x2, plaque3x2;
-var parameters={'fieldX':38,'fieldY':30,'fenceH':2,'houseX':4,'houseY':4,
-  'houseW':22,'houseH':15,'doorX':5,'window1X':12,'window2Y':2,'gateX':6, 'flowers':20};
+var parameters={'fieldX':39,'fieldY':30,'fenceH':2,'houseX':4,'houseY':4,
+  'houseW':22,'houseH':15,'doorX':5,'window1X':12,'window2Y':2,'gateX':6, 'flowers':20, 'houseColor':'#5aaaff'};
   
 // variables pour l'animations
 var clickInfo = [];
@@ -116,6 +137,14 @@ function start() {
   }
   // document.getElementById('replay').addEventListener('click',(event)=>{step=1;});
     
+  // pour changer la couleur de la maison
+  document.getElementById("houseColor").addEventListener('change',
+    (event)=>{
+      parameters['houseColor'] = document.getElementById("houseColor").value
+      generate();
+    }
+  );
+
   // initialisation du moteur de rendu
   renderer = new THREE.WebGLRenderer();
 
@@ -139,7 +168,12 @@ function start() {
 
   // création d'une caméra perspective(angle d'ouverture, rapport largeur/hauteur, near, far)
   camera = new THREE.PerspectiveCamera(25, w/h, 1, 6000);
-  camera.position.set(300,450,500);
+
+  if(SCREEN_WIDTH >= 768){
+    camera.position.set(300,450,500);
+  } else {
+    camera.position.set(600,900,1000);
+  }
   camera.lookAt(new THREE.Vector3(0,0,5*v));
   camera.up.set(0,0,1);
 
@@ -359,12 +393,12 @@ function generate() {
 
   var ground = myGround(parameters['fieldX'],parameters['fieldY']);
   parent.add(ground);
-  ground.add(repere);
-
+  // ground.add(repere);
+  
     
   myFence(parameters['fieldX'],parameters['fieldY'],parameters['fenceH'],ground);
   myHouse(parameters['houseX'],parameters['houseY'],parameters['houseW'],parameters['houseH'],6,ground);
-  // Chemin(ground)
+  Chemin(ground)
   Flowers(parameters['flowers'], parameters['fieldX'], parameters['fieldY'], parameters['houseX'], parameters['houseY'], parameters['houseW'], parameters['houseH'], ground);
       
   BBs.forEach(function(BB) { ground.add(BB.model)});
@@ -676,7 +710,7 @@ function myFence(lx,ly,lz,parent) {
     }
   }
 
-  ChangeColors(fence, "#e7c175", "#fde6b9")
+  ChangeColors(fence, parameters['houseColor'], "#e1f1ff")
 
   parent.add(fence);
 }
@@ -883,7 +917,7 @@ function myRoof(ix,iy,lz,lx,ly,parent){
 
   myPlafond(ix+i-1, iy+i-1, lz+i, lx+2, ly+2, roof)
 
-  ChangeColors(roof, "#5aaaff")
+  ChangeColors(roof, parameters['houseColor'])
 
   parent.add(roof);
 }
@@ -901,7 +935,7 @@ function mySol(ix, iy, iz, lx, ly, parent){
     }
   }
 
-  ChangeColors(sol, "#e1f1ff", "#286eba")
+  ChangeColors(sol, parameters['houseColor'], "#e1f1ff")
 
   parent.add(sol);
 }
